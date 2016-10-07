@@ -28,7 +28,7 @@
 #
 # There are six conditions that are fatal and will
 # cause the tests to abort:
-#   Local: 
+#   Local:
 #      membersrvc build fails
 #      membersrvc fails to initialize
 #      peer build fails
@@ -58,16 +58,16 @@
 # Other environment variables that will be referenced by individual tests
 #    SDK_DEPLOYWAIT - time (in seconds) to wait after sending deploy request
 #    SDK_INVOKEWAIT - time (in seconds) to wait after sending invoke request
-#    GRPC_SSL_CIPHER_SUITES - quoted, colon-delimited list of specific cipher suites 
+#    GRPC_SSL_CIPHER_SUITES - quoted, colon-delimited list of specific cipher suites
 #                             that node.js client sdk should propose.
 #                             The default list is set in sdk/node/lib/hfc.js
 #   SDK_DEFAULT_USER - User defined with 'registrar' authority. Default is 'WebAppAdmin'
 #   SDK_DEFAULT_SECRET - Password for SDK_DEFAULT_USER. Defaults to 'DJY27pEnl16d'
-#                        When running a local network, these are configured in the 
+#                        When running a local network, these are configured in the
 #                        membersrvc.yaml file. In the IBM Bluemix starter and HSBN
 #                        networks, this password is generated dynamically and returned
 #                        in the network credentials file.
-#   SDK_KEYSTORE_PERSIST - Set to '0' will delete all previously generated auth 
+#   SDK_KEYSTORE_PERSIST - Set to '0' will delete all previously generated auth
 #                                     enrollment data prior to running the tests
 #                          Set to '1' keep the auth data from previous enrollments
 #   SDK_CHAINCODE_PATH - the directory (relative to ${GOPATH}/src/) which contains
@@ -75,6 +75,8 @@
 #   SDK_CHAINCODE_ID -  the chaincode ID from a previous deployment. e.g. can be used
 #                       to invoke/query previously-deployed chaincode
 #
+export CGO_CFLAGS="-I/opt/rocksdb/include"
+export CGO_LDFLAGS="-L/opt/rocksdb -lrocksdb -lstdc++ -lm -lz -lbz2 -lsnappy"
 export NODE_PATH="${GOPATH}/src/github.com/hyperledger/fabric/sdk/node:\
 ${GOPATH}/src/github.com/hyperledger/fabric/sdk/node/lib:\
 ${GOPATH}/src/github.com/hyperledger/fabric/sdk/node/node_modules:\
@@ -86,7 +88,7 @@ errorExit() {
 }
 
 resolvHost() {
-   # simple 'host' or 'nslookup' doesn't work for 
+   # simple 'host' or 'nslookup' doesn't work for
    # /etc/host entries...attempt to resolve via ping
    local host="$1"
    ping -w2 -c1 "$host" | head -n1 | awk -F'[()]' '{print $2}'
@@ -99,7 +101,7 @@ isLocal() {
    # This permits constructions like
    #    $(isLocal <addr> <port>)
    # to return 0 (true) or 1 (false)
-  
+
    local addr="$1"
    local port="$2"
 
@@ -113,11 +115,11 @@ isLocal() {
       # search this machine for address
       ip addr list |
          awk -v s="$addr" -v rc=1 '
-            $1=="inet" { gsub(/\/.*/,"",$2); if ($2==s) rc=0 } 
+            $1=="inet" { gsub(/\/.*/,"",$2); if ($2==s) rc=0 }
             END { exit rc }'
       if test $? -eq 0; then
          # address is local but still peer might be running in container
-         # if docker-proxy is not running this instance, return true 
+         # if docker-proxy is not running this instance, return true
          sudo netstat -tlpn | grep "$port" |
             awk -F '/' '{print $NF}'| grep -q proxy
          test $? = 0 || result="true"
@@ -174,13 +176,13 @@ init() {
    : ${SDK_MEMBERSRVC_ADDRESS:="localhost:7054"}
    : ${SDK_PEER_ADDRESS:="localhost:7051"}
    : ${SDK_CA_CERT_HOST='tlsca'}
-   export SDK_MEMBERSRVC_ADDRESS SDK_PEER_ADDRESS SDK_KEYSTORE_PERSIST SDK_CA_CERT_HOST
+
 
    # extract hostname/ip and port
    caHost="${SDK_MEMBERSRVC_ADDRESS%:*}"
    caPort="${SDK_MEMBERSRVC_ADDRESS#*:}"
-   peerHost="${SDK_PEER_ADDRESS%:*}" 
-   peerPort="${SDK_PEER_ADDRESS#*:}" 
+   peerHost="${SDK_PEER_ADDRESS%:*}"
+   peerPort="${SDK_PEER_ADDRESS#*:}"
    caAddr="$(resolvHost $caHost)"
    peerAddr="$(resolvHost $peerHost)"
 
@@ -198,7 +200,7 @@ init() {
       isReachable "$peerAddr" "$peerPort" ||
          errorExit "peer ($peerAddr:$peerPort) unreachable"
    fi
-   
+
    # Set logging levels to enhance debugging
    export MEMBERSRVC_CA_LOGGING_TRACE=1
    export MEMBERSRVC_CA_LOGGING_SERVER="debug"
@@ -232,7 +234,8 @@ init() {
    # Run the membersrvc with the Attribute Certificate Authority enabled
    export MEMBERSRVC_CA_ACA_ENABLED=true
 
-   
+   export SDK_MEMBERSRVC_ADDRESS SDK_PEER_ADDRESS SDK_KEYSTORE_PERSIST
+
    # Run all tests by default
    : ${TEST_SUITE:="$(ls $UNITTEST/*.js)"}
 
@@ -260,7 +263,7 @@ init() {
 
    # do not delete the authentication data if this is set
    test "$SDK_KEYSTORE_PERSIST" != "1" &&
-      rm -rf /var/hyperledger/production /tmp/*keyValStore* 
+      rm -rf /var/hyperledger/production /tmp/*keyValStore*
 
    rm -rf $LOGDIR
    mkdir $LOGDIR
@@ -276,7 +279,7 @@ pollServer() {
    # continue to poll host:port until
    # we either get a response, or reach timeout
    while test "$(($(date +%s)-starttime))" -lt "$TIMEOUT" -a $rc -ne 0
-   do  
+   do
       sleep 1
       printf "\r%s%03d" "Waiting for $app start on $host:$port ..." "$now"
       isReachable "$host" "$port"
@@ -287,14 +290,17 @@ pollServer() {
 }
 
 startMemberServices() {
-   local rc=0 
+   local rc=0
 
    if test "$SDK_TLS" = "1"; then
-      export MEMBERSRVC_CA_SERVER_TLS_CERT_FILE=$SDK_CA_CERT_FILE 
-      export MEMBERSRVC_CA_SERVER_TLS_KEY_FILE=$SDK_CA_KEY_FILE 
-      export MEMBERSRVC_CA_SERVER_TLS_CERTFILE=$SDK_CA_CERT_FILE 
+      export MEMBERSRVC_CA_SERVER_TLS_CERT_FILE=$SDK_CA_CERT_FILE
+      export MEMBERSRVC_CA_SERVER_TLS_KEY_FILE=$SDK_CA_KEY_FILE
+      export MEMBERSRVC_CA_SERVER_TLS_CERTFILE=$SDK_CA_CERT_FILE
       export MEMBERSRVC_CA_SERVER_TLS_KEYFILE=$SDK_CA_KEY_FILE
-   else 
+      export MEMBERSRVC_CA_SECURITY_TLS_ENABLED="true"
+      export MEMBERSRVC_CA_SECURITY_SERVERHOSTOVERRIDE="tlsca"
+      export MEMBERSRVC_CA_SECURITY_CLIENT_CERT_FILE=$SDK_CA_CERT_FILE
+   else
       unset MEMBERSRVC_CA_SERVER_TLS_CERT_FILE
       unset MEMBERSRVC_CA_SERVER_TLS_KEY_FILE
       unset MEMBERSRVC_CA_SERVER_TLS_CERTFILE
@@ -322,12 +328,12 @@ startPeer() {
    local rc=0
 
    if test "$SDK_TLS" = "1"; then
-      export CORE_PEER_TLS_ENABLED=true 
-      export CORE_PEER_TLS_CERT_FILE=$SDK_CA_CERT_FILE 
+      export CORE_PEER_TLS_ENABLED=true
+      export CORE_PEER_TLS_CERT_FILE=$SDK_CA_CERT_FILE
       export CORE_PEER_TLS_KEY_FILE=$SDK_CA_KEY_FILE
       export CORE_PEER_TLS_SERVERHOSTOVERRIDE=tlsca
-      export CORE_PEER_PKI_TLS_ENABLED=true 
-      export CORE_PEER_PKI_TLS_ROOTCERT_FILE=$SDK_CA_CERT_FILE  
+      export CORE_PEER_PKI_TLS_ENABLED=true
+      export CORE_PEER_PKI_TLS_ROOTCERT_FILE=$SDK_CA_CERT_FILE
       export CORE_PEER_PKI_TLS_SERVERHOSTOVERRIDE=tlsca
    else
       unset CORE_PEER_TLS_ENABLED
@@ -404,11 +410,11 @@ prepareExampleForDeployInNetworkMode() {
       cp -r $FABRIC .
       cp -r fabric/vendor/github.com/op ..
       cd ../../..
-   
+
       echo "Building chaincode..."
       go build
       rc+=$?
-   fi 
+   fi
 
    return $rc
 }
@@ -567,30 +573,19 @@ runTests() {
 
    echo "Begin running tests in $SDK_DEPLOY_MODE mode ..."
    # restart peer
-   if $($peerAddrIsLocal); then 
+   if $($peerAddrIsLocal); then
       stopPeer
       startPeer || errorExit "Start peer failed."
    fi
-   
+
    for Test in $TestsToBeRun; do
-      # echo "HIT <ENTER> TO RUN NEXT TEST...."
-      # read x
-      case "${Test##*/}" in 
+      case "${Test##*/}" in
                     "registrar.js") runRegistrarTests ;;
                   "chain-tests.js") runChainTests     ;;
                    "asset-mgmt.js") runAssetMgmtTests ;;
                    "member-api.js") runMemberApi ;;
-"asset-mgmt-with-dynamic-roles.js") if test "$SDK_TLS" = 0; then
-                                       runAssetMgmtWithDynamicRolesTests
-                                    else
-                                       echo "FAB-392; SKIPPING AssetMgmtWithDynamicRolesTests"
-                                    fi ;;
-        # bug...FAB-392 - ACA combined with TLS fails - re-enable this for all tests when closed
-        "asset-mgmt-with-roles.js") if test "$SDK_TLS" = 0; then
-                                       runAssetMgmtWithRolesTests
-                                    else
-                                       echo "FAB-392; SKIPPING AssetMgmtWithRolesTests" 
-                                    fi ;;
+"asset-mgmt-with-dynamic-roles.js") runAssetMgmtWithDynamicRolesTests ;;
+        "asset-mgmt-with-roles.js") runAssetMgmtWithRolesTests ;;
                                  *) echo "NO case statement for ${Test##*/}, skipping..." ;;
       esac
       if test $? -ne 0; then
@@ -615,45 +610,45 @@ main() {
       for t in ${TEST_SUITE[*]}; do
          echo ${t##*/} | sed 's/^/   /'
       done
-       
+
       # Start member services
-      for tlsEnabled in 0 1; do 
+      for tlsEnabled in 0 1; do
          export SDK_TLS=$tlsEnabled
          test "$SDK_TLS" = 0 && echo "Running NON-TLS-enabled tests..." || echo "Running TLS-enabled tests..."
-      
+
          if test "$SDK_TLS" = "1"; then
             : ${SDK_CA_CERT_FILE:="/var/hyperledger/production/.membersrvc/tlsca.cert"}
             : ${SDK_CA_KEY_FILE:="/var/hyperledger/production/.membersrvc/tlsca.priv"}
             export SDK_CA_CERT_FILE
-         else 
+         else
             export MEMBERSRVC_CA_ACA_ENABLED=true
          fi
-      
+
          if $($caAddrIsLocal); then
             startMemberServices || errorExit "Failed to start membersrvc"
          fi
-      
+
         # Run tests in network mode
         SDK_DEPLOYWAIT=40
         SDK_INVOKEWAIT=15
         export SDK_DEPLOY_MODE='net'
         runTests "$TEST_SUITE"
-      
+
         # Run tests in dev mode
         SDK_DEPLOYWAIT=10
-        SDK_INVOKEWAIT=5 
+        SDK_INVOKEWAIT=5
         if $($peerAddrIsLocal); then
            export SDK_DEPLOY_MODE='dev'
            runTests "$TEST_SUITE"
         fi
-         
+
          # Stop peer and member services
          $($peerAddrIsLocal) && stopPeer
          $($caAddrIsLocal) && stopMemberServices
 
       # do not delete the authentication data if this is set
       test "$SDK_KEYSTORE_PERSIST" != "1" &&
-      rm -rf /var/hyperledger/production /tmp/*keyValStore* 
+      rm -rf /var/hyperledger/production /tmp/*keyValStore*
 
       done
       printf "\n%s\n" "${NODE_ERR_CODE}"
