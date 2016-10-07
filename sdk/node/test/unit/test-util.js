@@ -66,15 +66,18 @@ function getTestChain(name) {
    if (tlsOn) {
       if (fs.existsSync(caCert)) {
          var pem = fs.readFileSync(caCert);
-         if (caCertHost) { var grpcOpts={ pem:pem, hostnameOverride:'tlsca' } }
-         else { var grpcOpts={ pem:pem } };
-
-         console.log("Setting membersrvc address to grpcs://" + caAddr);
-         console.log("Setting peer address to grpcs://" + peerAddr0);
          console.log("Setting cert to " + caCert);
 
-         chain.setMemberServicesUrl("grpcs://" + caAddr, { pem:pem, hostnameOverride:'tlsca' } );
-         chain.addPeer("grpcs://" + peerAddr0, { pem:pem, hostnameOverride:'tlsca' } );
+         if (caCertHost) { var grpcOpts={ pem:pem, hostnameOverride: caCertHost } }
+         else { var grpcOpts={ pem:pem } };
+         console.log("Setting membersrvc address to grpcs://" + caAddr);
+         chain.setMemberServicesUrl("grpcs://" + caAddr, grpcOpts);
+
+         if (caCertHost) { var grpcOpts={ pem:pem, hostnameOverride: caCertHost } }
+         else { var grpcOpts={ pem:pem } };
+         console.log("Setting peer address to grpcs://" + peerAddr0);
+         chain.addPeer("grpcs://" + peerAddr0, grpcOpts);
+
       } else {
          console.log("TLS was requested but " + caCert + " not found.")
          process.exit(1)

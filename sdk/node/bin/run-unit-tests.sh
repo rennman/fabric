@@ -75,8 +75,10 @@
 #   SDK_CHAINCODE_ID -  the chaincode ID from a previous deployment. e.g. can be used
 #                       to invoke/query previously-deployed chaincode
 #
-export NODE_PATH=${GOPATH}/src/github.com/hyperledger/fabric/sdk/node:${GOPATH}/src/github.com/hyperledger/fabric/sdk/node/lib:/usr/local/lib/node_modules:/usr/lib/nodejs:/usr/lib/node_modules:/usr/share/javascript
-#export NODE_PATH=${GOPATH}/src/github.com/hyperledger/fabric/sdk/node:/usr/local/lib/node_modules:/usr/lib/nodejs:/usr/lib/node_modules:/usr/share/javascript
+export NODE_PATH="${GOPATH}/src/github.com/hyperledger/fabric/sdk/node:\
+${GOPATH}/src/github.com/hyperledger/fabric/sdk/node/lib:\
+${GOPATH}/src/github.com/hyperledger/fabric/sdk/node/node_modules:\
+/usr/local/lib/node_modules:/usr/local/lib/node_modules/hfc"
 
 errorExit() {
    printf "%s...exiting\n" "$1"
@@ -162,7 +164,7 @@ init() {
    MSLOGFILE=$LOGDIR/membersrvc.log
    PEEREXE=$FABRIC/build/bin/peer
    # user did not go through the normal build process, build in place
-   test ! -f "$PEEREXE" & PEEREXE="$FABRIC/peer/peer"
+   test ! -f "$PEEREXE" && PEEREXE="$FABRIC/peer/peer"
    PEERLOGFILE=$LOGDIR/peer.log
    UNITTEST=$GOPATH/src/github.com/hyperledger/fabric/sdk/node/test/unit
    EXAMPLES=$FABRIC/examples/chaincode/go
@@ -171,6 +173,8 @@ init() {
    # Run locally by default
    : ${SDK_MEMBERSRVC_ADDRESS:="localhost:7054"}
    : ${SDK_PEER_ADDRESS:="localhost:7051"}
+   : ${SDK_CA_CERT_HOST='tlsca'}
+   export SDK_MEMBERSRVC_ADDRESS SDK_PEER_ADDRESS SDK_KEYSTORE_PERSIST SDK_CA_CERT_HOST
 
    # extract hostname/ip and port
    caHost="${SDK_MEMBERSRVC_ADDRESS%:*}"
@@ -228,8 +232,7 @@ init() {
    # Run the membersrvc with the Attribute Certificate Authority enabled
    export MEMBERSRVC_CA_ACA_ENABLED=true
 
-   export SDK_MEMBERSRVC_ADDRESS SDK_PEER_ADDRESS SDK_KEYSTORE_PERSIST 
-
+   
    # Run all tests by default
    : ${TEST_SUITE:="$(ls $UNITTEST/*.js)"}
 
@@ -626,8 +629,9 @@ main() {
             export MEMBERSRVC_CA_ACA_ENABLED=true
          fi
       
-         $($caAddrIsLocal) && startMemberServices
-         test $? -eq 0 || errorExit "Failed to start membersrvc"
+         if $($caAddrIsLocal); then
+            startMemberServices || errorExit "Failed to start membersrvc"
+         fi
       
         # Run tests in network mode
         SDK_DEPLOYWAIT=40
