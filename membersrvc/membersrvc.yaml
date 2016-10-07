@@ -28,6 +28,13 @@ security:
     # Can be SHA2 or SHA3
     # Must be the same as in core.yaml
     hashAlgorithm: SHA3
+    serverhostoverride: tlsca
+    tls_enabled: true
+
+    client:
+       cert:
+           file: /var/hyperledger/production/.membersrvc/tlsca.cert
+
 
 # Enabling/disabling different logging levels of the CA.
 #
