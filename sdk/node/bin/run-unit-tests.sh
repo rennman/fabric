@@ -227,14 +227,14 @@ init() {
 
    # Increase timeout slightly for insurance
    # unless explicitly set
-   : ${SDK_DEPLOYWAIT:=40}
-   : ${SDK_INVOKEWAIT:=15}
+   : ${SDK_DEPLOYWAIT:=15}
+   : ${SDK_INVOKEWAIT:=5}
    export SDK_DEPLOYWAIT SDK_INVOKEWAIT
 
    # Run the membersrvc with the Attribute Certificate Authority enabled
    export MEMBERSRVC_CA_ACA_ENABLED=true
 
-   export SDK_MEMBERSRVC_ADDRESS SDK_PEER_ADDRESS SDK_KEYSTORE_PERSIST
+   export SDK_MEMBERSRVC_ADDRESS SDK_PEER_ADDRESS SDK_KEYSTORE_PERSIST SDK_CA_CERT_HOST
 
    # Run all tests by default
    : ${TEST_SUITE:="$(ls $UNITTEST/*.js)"}
@@ -298,7 +298,7 @@ startMemberServices() {
       export MEMBERSRVC_CA_SERVER_TLS_CERTFILE=$SDK_CA_CERT_FILE
       export MEMBERSRVC_CA_SERVER_TLS_KEYFILE=$SDK_CA_KEY_FILE
       export MEMBERSRVC_CA_SECURITY_TLS_ENABLED="true"
-      export MEMBERSRVC_CA_SECURITY_SERVERHOSTOVERRIDE="tlsca"
+      export MEMBERSRVC_CA_SECURITY_SERVERHOSTOVERRIDE='tlsca'
       export MEMBERSRVC_CA_SECURITY_CLIENT_CERT_FILE=$SDK_CA_CERT_FILE
    else
       unset MEMBERSRVC_CA_SERVER_TLS_CERT_FILE
@@ -629,8 +629,8 @@ main() {
          fi
 
         # Run tests in network mode
-        SDK_DEPLOYWAIT=40
-        SDK_INVOKEWAIT=15
+        SDK_DEPLOYWAIT=20
+        SDK_INVOKEWAIT=8
         export SDK_DEPLOY_MODE='net'
         runTests "$TEST_SUITE"
 
@@ -659,6 +659,6 @@ TEST_SUITE="$@"
 main
 NODE_ERR_CODE=$(sed -n '$p' $LOGDIR/log | awk '{print $NF}')
 echo "exit code: $NODE_ERR_CODE"
-printf "%s " $(date)
+printf "%s " $(date) | tee -a $LOGDIR/log
 test "$NODE_ERR_CODE" -eq 0 && echo "UT tests PASSED" || echo "UT tests FAILED"
 exit $NODE_ERR_CODE

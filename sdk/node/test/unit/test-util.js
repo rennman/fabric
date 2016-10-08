@@ -37,6 +37,9 @@ var caAddr   = process.env.SDK_MEMBERSRVC_ADDRESS
 var peerAddr0 = process.env.SDK_PEER_ADDRESS
  ? process.env.SDK_PEER_ADDRESS
  : "localhost:7051" ;
+var eventHubAddr = process.env.SDK_EVENTHUB_ADDRESS
+ ? process.env.SDK_EVENTHUB_ADDRESS
+ : "localhost:7053" ;
 var tlsOn    = ( process.env.SDK_TLS == null )
  ? Boolean(false)
  : Boolean(parseInt(process.env.SDK_TLS));
@@ -57,6 +60,7 @@ console.log("tlsOn           :"+tlsOn    );
 console.log("deployWait      :"+deployWait  );
 console.log("invokeWait      :"+invokeWait  );
 console.log("ciphers         :"+ciphers  );
+console.log("hostOverride    :"+caCertHost );
 
 function getTestChain(name) {
    name = name || "testChain";
@@ -70,13 +74,15 @@ function getTestChain(name) {
 
          if (caCertHost) { var grpcOpts={ pem:pem, hostnameOverride: caCertHost } }
          else { var grpcOpts={ pem:pem } };
+
          console.log("Setting membersrvc address to grpcs://" + caAddr);
          chain.setMemberServicesUrl("grpcs://" + caAddr, grpcOpts);
 
-         if (caCertHost) { var grpcOpts={ pem:pem, hostnameOverride: caCertHost } }
-         else { var grpcOpts={ pem:pem } };
          console.log("Setting peer address to grpcs://" + peerAddr0);
          chain.addPeer("grpcs://" + peerAddr0, grpcOpts);
+
+//         console.log("Setting eventHub address to grpcs://" + eventHubAddr);
+//         chain.eventHubConnect("grpcs://" + eventHubAddr, grpcOpts);
 
       } else {
          console.log("TLS was requested but " + caCert + " not found.")
@@ -85,8 +91,10 @@ function getTestChain(name) {
    } else {
       console.log("Setting membersrvc address to grpc://" + caAddr);
       console.log("Setting peer address to grpc://" + peerAddr0);
+//    console.log("Setting eventHub address to grpc://" + eventHubAddr);
       chain.setMemberServicesUrl("grpc://" + caAddr);
       chain.addPeer("grpc://" + peerAddr0);
+//    chain.eventHubConnect("grpc://" + eventHubAddr);
    }
    //
    // Set the chaincode deployment mode to either developent mode (user runs chaincode)
@@ -112,3 +120,5 @@ exports.tlsOn     = tlsOn
 exports.deployWait   = deployWait
 exports.invokeWait   = invokeWait
 exports.ciphers   = ciphers
+exports.caCertHost = caCertHost
+exports.eventHubAddr = eventHubAddr

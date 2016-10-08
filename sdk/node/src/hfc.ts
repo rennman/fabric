@@ -65,6 +65,7 @@ var sha3 = require('js-sha3');
 var BN = require('bn.js');
 var Set = require('es6-set');
 var HashTable = require('hashtable');
+var extend = require('util')._extend;
 import * as crypto from "./crypto"
 import * as stats from "./stats"
 import * as sdk_util from "./sdk_util"
@@ -1386,7 +1387,7 @@ export class TransactionContext extends events.EventEmitter {
      * @param tx {Transaction} The transaction.
      */
     private execute(tx:Transaction):TransactionContext {
-        debug('Executing transaction [%j]', tx);
+        debug('Executing transaction');
 
         let self = this;
         // Get the TCert
@@ -1757,7 +1758,7 @@ export class TransactionContext extends events.EventEmitter {
 
         // Compose the Dockerfile commands
      	  let dockerFileContents =
-        "from hyperledger/fabric-baseimage" + "\n" +
+        "from hyperledger/fabric-baseimage:x86_64-0.1.0" + "\n" +
      	  "COPY . $GOPATH/src/build-chaincode/" + "\n" +
      	  "WORKDIR $GOPATH" + "\n\n" +
      	  "RUN go install build-chaincode && cp src/build-chaincode/vendor/github.com/hyperledger/fabric/peer/core.yaml $GOPATH/bin && mv $GOPATH/bin/build-chaincode $GOPATH/bin/%s";
@@ -2780,18 +2781,19 @@ function getPemFromOpts(opts:any):string {
 
 // Normalize opts
 function getOptsFromOpts(opts:any):GRPCOptions {
-   if (isObject(opts)) {
-      delete opts.pem;
-      if (opts.hostnameOverride) {
-         opts['grpc.ssl_target_name_override'] = opts.hostnameOverride;
-         opts['grpc.default_authority'] = opts.hostnameOverride;
-         delete opts.hostnameOverride;
+   var o = (<any>Object).assign( {}, opts);
+   if (isObject(o)) {
+      delete o.pem;
+      if (o.hostnameOverride) {
+         o['grpc.ssl_target_name_override'] = o.hostnameOverride;
+         o['grpc.default_authority'] = o.hostnameOverride;
+         delete o.hostnameOverride;
       }
-      return <GRPCOptions>opts;
+      return <GRPCOptions>o;
    }
-   if (isString(opts)) {
+   if (isString(o)) {
       // backwards compatible to handle pem as opts
-      return <GRPCOptions>{ pem: opts };
+      return <GRPCOptions>{ pem: o };
    }
 }
 

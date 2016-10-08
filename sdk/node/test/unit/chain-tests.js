@@ -26,13 +26,27 @@ var urlpattern = new RegExp( "(http|ftp|grpc)s*:\/\/?");
 //
 //  Create a test chain
 //
-
 var chain = tutil.getTestChain("testChain");
-chain.eventHubConnect("grpc://localhost:7053");
 
 //
 // Configure the test chain
 //
+if (tutil.tlsOn) {
+    if (tutil.caCert) {
+       var pem = fs.readFileSync(tutil.caCert);
+       console.log("tutil.caCertHost:", tutil.caCertHost);
+       if (tutil.caCertHost) { var eventGrpcOpts={ pem:pem, hostnameOverride: tutil.caCertHost} }
+       else { var eventGrpcOpts={ pem:pem } };
+    }
+    console.log("Setting eventHubAddr address to grpcs://" + tutil.eventHubAddr);
+    console.log("eventGrpcOpts", eventGrpcOpts);
+    chain.eventHubConnect("grpcs://" + tutil.eventHubAddr, eventGrpcOpts); 
+}
+else { 
+    console.log("Setting eventHubAddr address to grpc://" + tutil.eventHubAddr);
+    chain.eventHubConnect("grpc://" + tutil.eventHubAddr);
+}
+
 process.on('exit', function (){
   chain.eventHubDisconnect();
 });
